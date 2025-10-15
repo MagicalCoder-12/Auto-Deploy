@@ -1,0 +1,2 @@
+# Auto Deploy Agent CLI Requirements
+ollama>=0.1.0
