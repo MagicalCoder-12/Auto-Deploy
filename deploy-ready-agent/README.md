@@ -21,11 +21,11 @@ A command-line tool that automatically detects, builds, and deploys web projects
 
 ## Supported Platforms
 
-- Vercel
-- Netlify
-- GitHub Pages
-- Cloudflare Pages
-- Render
+- Vercel (automated deployment)
+- Netlify (automated deployment)
+- GitHub Pages (manual deployment instructions)
+- Cloudflare Pages (automated deployment)
+- Render (manual deployment instructions)
 
 ## Installation
 
@@ -49,7 +49,7 @@ The tool will:
 2. Recommend the best hosting platform
 3. Guide you through CLI installation if needed
 4. Build your project if necessary
-5. Deploy your project
+5. Deploy your project or provide deployment instructions
 
 ## How It Works
 
@@ -61,13 +61,31 @@ The tool will:
 
 4. **Build**: If your project requires building (Next.js, Vite, React), it will automatically run the build process.
 
-5. **Deploy**: It deploys your project to the recommended platform using the appropriate CLI commands.
+5. **Deploy**: 
+   - For platforms with CLI support (Vercel, Netlify, Cloudflare Pages), it performs automated deployment
+   - For platforms requiring manual steps (GitHub Pages, Render), it provides detailed deployment instructions
 
 ## Project-Specific Configurations
 
 ### Flask Projects
 
 For Flask projects, the tool automatically creates a `vercel.json` configuration file if deploying to Vercel, ensuring proper deployment.
+
+## Deployment Types
+
+### Automated Deployment (Vercel, Netlify, Cloudflare Pages)
+These platforms have CLI tools that allow for fully automated deployment. The agent will:
+1. Check authentication
+2. Initialize the project
+3. Deploy to the platform
+4. Provide the live URL
+
+### Manual Deployment (GitHub Pages, Render)
+These platforms require manual steps to complete deployment:
+- GitHub Pages: Requires pushing code to GitHub and enabling Pages in settings
+- Render: Requires creating an account and connecting your Git repository
+
+The agent provides detailed step-by-step instructions for completing these manual deployments.
 
 ## Troubleshooting
 
