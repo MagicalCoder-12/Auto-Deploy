@@ -1,0 +1,19 @@
+{
+  "name": "deploy-agent-test-project",
+  "version": "1.0.0",
+  "description": "A simple static HTML project for testing the deploy_agent.py script",
+  "scripts": {
+    "start": "npx serve .",
+    "build": "echo 'No build step required for static site'"
+  },
+  "keywords": [
+    "static",
+    "html",
+    "test"
+  ],
+  "author": "Deploy Agent Tester",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.0.0"
+  }
+}
