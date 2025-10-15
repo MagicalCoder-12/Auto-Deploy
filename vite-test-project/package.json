@@ -1,0 +1,19 @@
+{
+  "name": "vite-test-project",
+  "version": "1.0.0",
+  "description": "A simple Vite project for testing the deploy_agent.py script",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "vite",
+    "test"
+  ],
+  "author": "Deploy Agent Tester",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^4.0.0"
+  }
+}
