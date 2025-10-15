@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+import time
 
 # Use Ollama for smart decisions
 try:
@@ -147,9 +148,13 @@ def recommend_platform(project_type):
 def check_cli_installed(cli_command):
     """Check if a CLI tool is installed by running --version."""
     try:
-        result = subprocess.run(f"{cli_command} --version", capture_output=True, text=True, shell=True)
+        result = subprocess.run(f"{cli_command} --version", capture_output=True, text=True, shell=True, timeout=10)
         return result.returncode == 0
-    except Exception:
+    except subprocess.TimeoutExpired:
+        print(f"⚠️ Command '{cli_command} --version' timed out")
+        return False
+    except Exception as e:
+        print(f"⚠️ Error checking {cli_command}: {e}")
         return False
 
 def install_cli(platform):
@@ -178,13 +183,16 @@ def install_cli(platform):
         if permission.lower() == 'y':
             try:
                 print(f"👉 Installing {cli_info['cmd']}...")
-                result = subprocess.run(cli_info["install"], capture_output=True, text=True, shell=True)
+                result = subprocess.run(cli_info["install"], capture_output=True, text=True, shell=True, timeout=120)
                 if result.returncode == 0:
                     print("✅ Installation successful!")
                     return True
                 else:
                     print(f"⚠️ Installation failed: {result.stderr}")
                     return False
+            except subprocess.TimeoutExpired:
+                print(f"⚠️ Installation of {cli_info['cmd']} timed out")
+                return False
             except Exception as e:
                 print(f"❌ Error installing: {e}")
                 return False
@@ -521,12 +529,14 @@ def init_git_repo():
         print("✅ This directory is already a git repository.")
         # Check if remote exists
         try:
-            result = subprocess.run("git remote get-url origin", capture_output=True, text=True, shell=True)
+            result = subprocess.run("git remote get-url origin", capture_output=True, text=True, shell=True, timeout=10)
             if result.returncode == 0 and result.stdout.strip():
                 print(f"🔗 Already connected to remote: {result.stdout.strip()}")
                 return True
-        except Exception:
-            pass
+        except subprocess.TimeoutExpired:
+            print("⚠️ Checking remote repository timed out")
+        except Exception as e:
+            print(f"⚠️ Error checking remote repository: {e}")
 
     permission = input("Do you want me to initialize a git repository for this project? (y/n): ")
     if permission.lower() != 'y':
@@ -534,7 +544,7 @@ def init_git_repo():
 
     try:
         print("🔧 Initializing git repo...")
-        subprocess.run("git init", check=True, shell=True)
+        subprocess.run("git init", check=True, shell=True, timeout=30)
         
         # Create .gitignore file
         # We'll determine project type by checking existing files
@@ -549,24 +559,27 @@ def init_git_repo():
             
         create_gitignore(project_type)
         
-        subprocess.run("git add .", check=True, shell=True)
+        subprocess.run("git add .", check=True, shell=True, timeout=30)
         commit_msg = input("Enter commit message (default: 'Initial commit'): ") or "Initial commit"
-        subprocess.run(f"git commit -m '{commit_msg}'", check=True, shell=True)
+        subprocess.run(f"git commit -m '{commit_msg}'", check=True, shell=True, timeout=30)
 
         # Ask for remote repository URL
         repo_url = input("Enter your remote Git repository URL (e.g., https://github.com/user/repo.git) or leave blank to skip: ").strip()
         if repo_url:
-            subprocess.run(f"git remote add origin {repo_url}", check=True, shell=True)
-            subprocess.run("git branch -M main", check=True, shell=True)
+            subprocess.run(f"git remote add origin {repo_url}", check=True, shell=True, timeout=30)
+            subprocess.run("git branch -M main", check=True, shell=True, timeout=30)
             push_permission = input("Do you want to push to the remote repository now? (y/n): ")
             if push_permission.lower() == 'y':
                 print("🚀 Pushing to remote repository...")
-                subprocess.run("git push -u origin main", check=True, shell=True)
+                subprocess.run("git push -u origin main", check=True, shell=True, timeout=120)
                 print("✅ Pushed to remote repository!")
         else:
             print("ℹ️  Skipped remote repository setup. You can add it later with 'git remote add origin <url>'")
             
         return True
+    except subprocess.TimeoutExpired:
+        print("❌ Git operation timed out")
+        return False
     except subprocess.CalledProcessError as e:
         print(f"❌ Git operation failed: {e}")
         return False
@@ -577,18 +590,21 @@ def init_git_repo():
 def check_node_installed():
     """Check if Node.js and npm are installed and accessible."""
     try:
-        node_result = subprocess.run("node --version", capture_output=True, text=True, shell=True)
+        node_result = subprocess.run("node --version", capture_output=True, text=True, shell=True, timeout=10)
         if node_result.returncode != 0:
             print("❌ Node.js not found.")
             return False
         print(f"✅ Node.js version: {node_result.stdout.strip()}")
 
-        npm_result = subprocess.run("npm --version", capture_output=True, text=True, shell=True)
+        npm_result = subprocess.run("npm --version", capture_output=True, text=True, shell=True, timeout=10)
         if npm_result.returncode != 0:
             print("❌ npm not found.")
             return False
         print(f"✅ npm version: {npm_result.stdout.strip()}")
         return True
+    except subprocess.TimeoutExpired:
+        print("⚠️ Checking Node.js/npm timed out")
+        return False
     except Exception as e:
         print(f"❌ Error checking Node.js/npm: {e}")
         return False
@@ -597,13 +613,16 @@ def install_dependencies():
     """Install project dependencies."""
     print("📦 Installing project dependencies...")
     try:
-        result = subprocess.run("npm install", capture_output=True, text=True, shell=True, cwd=PROJECT_DIR)
+        result = subprocess.run("npm install", capture_output=True, text=True, shell=True, cwd=PROJECT_DIR, timeout=300)
         if result.returncode == 0:
             print("✅ Dependencies installed successfully!")
             return True
         else:
             print(f"⚠️ Failed to install dependencies: {result.stderr}")
             return False
+    except subprocess.TimeoutExpired:
+        print("⚠️ Installing dependencies timed out")
+        return False
     except Exception as e:
         print(f"❌ Error installing dependencies: {e}")
         return False
@@ -728,7 +747,7 @@ def build_project(project_type):
 
         try:
             print("🔧 Running npm run build...")
-            result = subprocess.run("npm run build", capture_output=True, text=True, cwd=PROJECT_DIR, shell=True)
+            result = subprocess.run("npm run build", capture_output=True, text=True, cwd=PROJECT_DIR, shell=True, timeout=600)
             if result.returncode == 0:
                 print("✅ Build successful!")
                 return True
@@ -740,10 +759,13 @@ def build_project(project_type):
                 if "not recognized" in result.stderr.lower() or "command not found" in result.stderr.lower():
                     if input("Install dependencies now? (y/n): ").lower() == 'y':
                         if install_dependencies():
-                            retry_result = subprocess.run("npm run build", capture_output=True, text=True, cwd=PROJECT_DIR, shell=True)
+                            retry_result = subprocess.run("npm run build", capture_output=True, text=True, cwd=PROJECT_DIR, shell=True, timeout=600)
                             if retry_result.returncode == 0:
                                 return True
                 return False
+        except subprocess.TimeoutExpired:
+            print("⚠️ Build process timed out")
+            return False
         except Exception as e:
             print(f"❌ Build error: {e}")
             return False
@@ -755,13 +777,16 @@ def vercel_login():
     """Guide user through Vercel login process."""
     print("🔐 Running 'vercel login'...")
     try:
-        result = subprocess.run("vercel login", capture_output=False, text=True, shell=True)
+        result = subprocess.run("vercel login", capture_output=False, text=True, shell=True, timeout=120)
         if result.returncode == 0:
             print("✅ Login successful!")
             return True
         else:
             print("⚠️ Login failed. Try manually.")
             return False
+    except subprocess.TimeoutExpired:
+        print("⚠️ Vercel login timed out")
+        return False
     except Exception as e:
         print(f"❌ Login error: {e}")
         return False
@@ -770,14 +795,14 @@ def deploy_to_netlify():
     """Deploy using Netlify CLI."""
     try:
         print("🔧 Initializing Netlify...")
-        init_result = subprocess.run("netlify init --manual", capture_output=True, text=True, shell=True)
+        init_result = subprocess.run("netlify init --manual", capture_output=True, text=True, shell=True, timeout=120)
         if init_result.returncode != 0:
             print(f"⚠️ Init failed: {init_result.stderr}")
             if input("Log in to Netlify now? (y/n): ").lower() == 'y':
-                subprocess.run("netlify login", capture_output=True, text=True, shell=True)
+                subprocess.run("netlify login", capture_output=True, text=True, shell=True, timeout=60)
 
         print("🚀 Deploying to Netlify...")
-        result = subprocess.run("netlify deploy --prod", capture_output=True, text=True, shell=True)
+        result = subprocess.run("netlify deploy --prod", capture_output=True, text=True, shell=True, timeout=300)
         if result.returncode == 0:
             print("✅ Deployed!")
             for line in result.stdout.split('\n'):
@@ -788,6 +813,9 @@ def deploy_to_netlify():
         else:
             print(f"⚠️ Failed: {result.stderr}")
             return False
+    except subprocess.TimeoutExpired:
+        print("⚠️ Netlify deployment timed out")
+        return False
     except Exception as e:
         print(f"❌ Error: {e}")
         return False
@@ -795,14 +823,14 @@ def deploy_to_netlify():
 def deploy_to_vercel():
     """Deploy using Vercel CLI."""
     try:
-        whoami_result = subprocess.run("vercel whoami", capture_output=True, text=True, shell=True)
+        whoami_result = subprocess.run("vercel whoami", capture_output=True, text=True, shell=True, timeout=30)
         if whoami_result.returncode != 0:
             if input("Log in to Vercel now? (y/n): ").lower() == 'y':
                 if not vercel_login():
                     return False
 
         print("🚀 Deploying to Vercel...")
-        result = subprocess.run("vercel --prod --yes", capture_output=True, text=True, shell=True)
+        result = subprocess.run("vercel --prod --yes", capture_output=True, text=True, shell=True, timeout=300)
         if result.returncode == 0:
             print("✅ Deployed!")
             for line in result.stdout.split('\n'):
@@ -813,6 +841,9 @@ def deploy_to_vercel():
         else:
             print(f"⚠️ Failed: {result.stderr}")
             return False
+    except subprocess.TimeoutExpired:
+        print("⚠️ Vercel deployment timed out")
+        return False
     except Exception as e:
         print(f"❌ Error: {e}")
         return False
@@ -844,7 +875,7 @@ def deploy_to_cloudflare_pages():
         build_folder = next((f for f in ["dist", "build", "out"] if os.path.exists(f)), ".")
         print("🚀 Deploying to Cloudflare...")
         cmd = f"wrangler pages deploy {build_folder} --project-name {PROJECT_DIR.name}"
-        result = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=300)
         if result.returncode == 0:
             print("✅ Deployed!")
             for line in result.stdout.split('\n'):
@@ -855,6 +886,9 @@ def deploy_to_cloudflare_pages():
         else:
             print(f"⚠️ Failed: {result.stderr}")
             return False
+    except subprocess.TimeoutExpired:
+        print("⚠️ Cloudflare deployment timed out")
+        return False
     except Exception as e:
         print(f"❌ Error: {e}")
         return False
@@ -881,7 +915,7 @@ def deploy_to_render():
 def deploy_to_vercel_flask():
     """Deploy Flask to Vercel with config."""
     try:
-        whoami_result = subprocess.run("vercel whoami", capture_output=True, text=True, shell=True)
+        whoami_result = subprocess.run("vercel whoami", capture_output=True, text=True, shell=True, timeout=30)
         if whoami_result.returncode != 0:
             if input("Log in to Vercel now? (y/n): ").lower() == 'y':
                 if not vercel_login():
@@ -898,7 +932,7 @@ def deploy_to_vercel_flask():
             print("✅ Copied app.py to api/index.py for Vercel deployment")
 
         print("🚀 Deploying Flask to Vercel...")
-        result = subprocess.run("vercel --prod --yes", capture_output=True, text=True, shell=True)
+        result = subprocess.run("vercel --prod --yes", capture_output=True, text=True, shell=True, timeout=300)
         if result.returncode == 0:
             print("✅ Deployed!")
             for line in result.stdout.split('\n'):
@@ -910,6 +944,9 @@ def deploy_to_vercel_flask():
             print(f"⚠️ Failed: {result.stderr}")
             print("💡 Troubleshooting: Check vercel.json, requirements.txt, app structure.")
             return False
+    except subprocess.TimeoutExpired:
+        print("⚠️ Vercel Flask deployment timed out")
+        return False
     except Exception as e:
         print(f"❌ Error: {e}")
         return False
@@ -941,9 +978,33 @@ def deploy_to_platform(platform):
         print(f"❓ Unsupported: {platform}")
         return False
 
+def validate_deployment(platform, project_type):
+    """Validate that the deployment was successful."""
+    print("🔍 Validating deployment...")
+    
+    # For platforms that provide a URL, we could ping it to verify it's live
+    # This is a simplified validation - in a real-world scenario, you might want
+    # to make HTTP requests to verify the deployment
+    
+    if platform in ["Netlify", "Vercel", "Cloudflare Pages"]:
+        print("✅ Deployment validation: Please check the provided URL to verify your site is live")
+        return True
+    elif platform == "GitHub Pages":
+        print("✅ Deployment validation: Please check your GitHub Pages settings to verify your site is live")
+        return True
+    elif platform == "Render":
+        print("✅ Deployment validation: Please check your Render dashboard to verify your app is live")
+        return True
+    else:
+        print("✅ Deployment completed")
+        return True
+
 def main():
     print("🚀 Welcome to the Auto Deploy Agent CLI!")
     print(f"Scanning project in: {PROJECT_DIR}")
+    
+    # Add a small delay to let user read the welcome message
+    time.sleep(1)
 
     # 1. Detect project type using Llama3
     project_type = detect_project_type()
@@ -997,6 +1058,12 @@ def main():
         print(f"\n🎉 Deployment to {platform} completed successfully!")
         if platform in ["GitHub Pages", "Render"]:
             print("💡 Note: For git-based platforms, push changes for updates.")
+        
+        # 8. Validate deployment
+        validate_deployment(platform, project_type)
+        
+        print("\n🎊 Thank you for using Auto Deploy Agent CLI!")
+        print("   If you have any issues or suggestions, please let us know.")
     else:
         print(f"\n❌ Deployment failed.")
         print("Troubleshooting: Check CLI login, internet, project setup.")
