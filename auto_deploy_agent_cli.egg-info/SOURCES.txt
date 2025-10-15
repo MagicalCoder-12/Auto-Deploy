@@ -1,0 +1,8 @@
+README.md
+setup.py
+auto_deploy_agent_cli.egg-info/PKG-INFO
+auto_deploy_agent_cli.egg-info/SOURCES.txt
+auto_deploy_agent_cli.egg-info/dependency_links.txt
+auto_deploy_agent_cli.egg-info/entry_points.txt
+auto_deploy_agent_cli.egg-info/requires.txt
+auto_deploy_agent_cli.egg-info/top_level.txt

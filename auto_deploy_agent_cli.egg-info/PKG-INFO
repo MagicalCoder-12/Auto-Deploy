@@ -1,0 +1,7 @@
+Metadata-Version: 2.1
+Name: auto-deploy-agent-cli
+Version: 1.0.0
+Summary: A CLI tool to automatically detect, build, and deploy web projects using AI recommendations
+Author: Auto Deploy Team
+Requires-Python: >=3.6
+Requires-Dist: ollama>=0.1.0
