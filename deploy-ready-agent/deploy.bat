@@ -6,7 +6,7 @@ echo This script will run the deploy agent which will:
 echo 1. Detect your project type
 echo 2. Recommend the best hosting platform
 echo 3. Guide you through installation of required tools
-echo 4. Deploy your site
+echo 4. Deploy your site (or provide deployment instructions)
 echo.
 echo Press any key to continue...
 pause >nul
@@ -14,5 +14,7 @@ echo.
 python deploy_agent.py
 echo.
 echo Deployment process completed.
+echo Note: For some platforms (like GitHub Pages), you may need to
+echo complete manual steps to finish deployment.
 echo Press any key to exit...
 pause >nul

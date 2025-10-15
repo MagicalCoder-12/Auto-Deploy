@@ -352,15 +352,29 @@ def deploy_to_github_pages():
     else:
         print("⚠️ No build output folder found. Using current directory for deployment.")
     
-    print("👉 To deploy to GitHub Pages:")
-    print("   1. Make sure your repository is on GitHub")
-    print("   2. Go to your repository Settings → Pages")
-    print("   3. Set Source to 'Deploy from a branch'")
-    print("   4. Select branch 'main' and folder '/docs'")
-    print("   5. Commit and push your changes:")
+    print("\n📝 GitHub Pages Deployment Instructions:")
+    print("=====================================")
+    print("GitHub Pages requires manual deployment steps:")
+    print("   1. Create a new repository on GitHub (if you haven't already)")
+    print("   2. Initialize git in your project directory:")
+    print("      git init")
     print("      git add .")
-    print("      git commit -m 'Deploy to GitHub Pages'")
-    print("      git push origin main")
+    print("      git commit -m 'Initial commit'")
+    print("   3. Connect your local repository to GitHub:")
+    print("      git remote add origin https://github.com/yourusername/your-repo-name.git")
+    print("   4. Push your code to GitHub:")
+    print("      git push -u origin main")
+    print("   5. Enable GitHub Pages in your repository settings:")
+    print("      - Go to your repository on GitHub")
+    print("      - Click 'Settings' tab")
+    print("      - Scroll down to 'Pages' section")
+    print("      - Under 'Source', select 'Deploy from a branch'")
+    print("      - Select branch 'main' and folder '/docs' (or root '/' if no docs folder)")
+    print("      - Click 'Save'")
+    print("   6. Your site will be available at:")
+    print("      https://yourusername.github.io/your-repo-name/")
+    
+    # Return True to indicate the instructions were provided successfully
     return True
 
 def deploy_to_cloudflare_pages():
@@ -514,7 +528,10 @@ def deploy_to_platform(platform):
     elif platform == "Vercel":
         return deploy_to_vercel()
     elif platform == "GitHub Pages":
-        return deploy_to_github_pages()
+        result = deploy_to_github_pages()
+        # For GitHub Pages, we return False to indicate manual deployment
+        # But we still consider it "successful" from a guidance perspective
+        return True
     elif platform == "Cloudflare Pages":
         return deploy_to_cloudflare_pages()
     elif platform == "Render":
@@ -558,7 +575,13 @@ def main():
         success = deploy_to_platform(platform)
     
     if success:
-        print(f"\n🎉 Deployment to {platform} completed successfully!")
+        # Be more specific about what "success" means
+        if platform == "GitHub Pages":
+            print(f"\n✅ Deployment instructions for {platform} provided!")
+            print("📝 Please follow the steps above to complete your deployment.")
+            print("💡 Note: For GitHub Pages, you need to manually push to GitHub to deploy.")
+        else:
+            print(f"\n🎉 Deployment to {platform} completed successfully!")
     else:
         print(f"\n❌ Deployment to {platform} failed.")
         print("But don't worry! You can still deploy manually using the platform's dashboard or CLI.")
