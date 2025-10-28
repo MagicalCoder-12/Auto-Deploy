@@ -10,6 +10,7 @@ A command-line tool that automatically detects, builds, and deploys web projects
 - 🛠️ **Automatic CLI Installation**: Guides you through installing required CLIs
 - 📦 **Dependency Management**: Automatically installs project dependencies
 - 🔧 **Build Automation**: Handles project building when necessary
+- 📁 **Modular Architecture**: Code is organized into separate modules for easier maintenance
 
 ## Prerequisites
 
@@ -59,6 +60,11 @@ A command-line tool that automatically detects, builds, and deploys web projects
 1. Navigate to your web project directory
 2. Run the deploy agent:
    ```bash
+   python main.py
+   ```
+   
+   Or use the legacy entry point:
+   ```bash
    python deploy_agent.py
    ```
 
@@ -68,6 +74,27 @@ The tool will:
 3. Guide you through CLI installation if needed
 4. Build your project if necessary
 5. Deploy your project or provide deployment instructions
+
+## Modular Architecture
+
+The code has been restructured into a modular architecture for better maintainability:
+
+```
+auto_deploy/
+├── core/                 # Core functionality modules
+│   ├── detector.py       # Project detection logic
+│   ├── recommender.py    # Platform recommendation logic
+│   ├── cli_manager.py    # CLI tool management
+│   ├── git_handler.py    # Git operations
+│   ├── builder.py        # Build processes
+│   ├── deployer.py       # Deployment functions
+│   └── file_manager.py   # File creation and management
+├── utils/                # Utility functions
+│   └── helpers.py        
+├── config.py             # Configuration constants
+├── main.py               # Main entry point
+└── deploy_agent.py       # Legacy entry point (deprecated)
+```
 
 ## How It Works
 
