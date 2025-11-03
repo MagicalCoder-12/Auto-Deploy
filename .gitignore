@@ -18,3 +18,4 @@ __pycache__
 dist/
 build/
 *.egg
+auto_deploy_agent_cli.egg-info/
