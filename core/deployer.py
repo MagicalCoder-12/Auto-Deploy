@@ -61,7 +61,7 @@ def deploy_to_vercel():
                 if not vercel_login():
                     return False
 
-        print("🚀 Deploying to Vercel...")
+        # The "Deploying to Vercel..." message is printed in main.py to avoid duplication
         result = subprocess.run("vercel --prod --yes", capture_output=True, text=True, shell=True, timeout=300)
         if result.returncode == 0:
             print("✅ Deployed!")
@@ -162,7 +162,7 @@ def deploy_to_vercel_flask():
             shutil.copy("app.py", "api/index.py")
             print("✅ Copied app.py to api/index.py for Vercel deployment")
 
-        print("🚀 Deploying Flask to Vercel...")
+        # The "Deploying Flask to Vercel..." message is printed in main.py to avoid duplication
         result = subprocess.run("vercel --prod --yes", capture_output=True, text=True, shell=True, timeout=300)
         if result.returncode == 0:
             print("✅ Deployed!")
@@ -184,7 +184,7 @@ def deploy_to_vercel_flask():
 
 def deploy_to_platform_flask(platform):
     """Deploy Flask project to the specified platform."""
-    print(f"🚀 Deploying Flask to {platform}...")
+    # The deployment message is printed in main.py to avoid duplication
     if platform == "Vercel":
         return deploy_to_vercel_flask()
     elif platform == "Render":
@@ -194,7 +194,7 @@ def deploy_to_platform_flask(platform):
 
 def deploy_to_platform(platform):
     """Deploy to the specified platform."""
-    print(f"🚀 Deploying to {platform}...")
+    # The deployment message is printed in main.py to avoid duplication
     if platform == "Netlify":
         return deploy_to_netlify()
     elif platform == "Vercel":

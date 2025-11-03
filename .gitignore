@@ -10,3 +10,11 @@
 # Local Netlify folder
 .netlify
 __pycache__
+# IDE-specific directories
+.qoder/
+# Python egg info
+*.egg-info/
+# Distribution files
+dist/
+build/
+*.egg
