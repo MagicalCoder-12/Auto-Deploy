@@ -55,15 +55,25 @@ A command-line tool that automatically detects, builds, and deploys web projects
    ollama pull llama3.1:8b
    ```
 
-### Alternative Installation Using setup.py
+### Alternative Installation Using pyproject.toml (Recommended)
 
-You can also install the Auto Deploy Agent as a package using the setup.py file:
+The Auto Deploy Agent now uses the modern PEP 517 build system to avoid deprecation warnings. You can install the package using:
 
 ```bash
 pip install .
 ```
 
-This will install the package and make the `deploy-agent` command available globally.
+This will install the package and make the `deploy-agent` command available globally. This method uses the new `pyproject.toml` configuration which resolves the deprecation warning about the legacy setup.py mechanism.
+
+### Legacy Installation Using setup.py
+
+You can still use the legacy setup.py file for installation:
+
+```bash
+pip install .
+```
+
+However, we recommend using the new PEP 517 build system with pyproject.toml to avoid future compatibility issues.
 
 ## Platform CLI Installation Commands
 

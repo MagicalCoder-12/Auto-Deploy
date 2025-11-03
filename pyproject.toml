@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "auto-deploy-agent-cli"
+version = "1.0.0"
+description = "A CLI tool to automatically detect, build, and deploy web projects using AI recommendations"
+authors = [
+    {name = "Auto Deploy Team"}
+]
+requires-python = ">=3.6"
+dependencies = [
+    "ollama>=0.1.0"
+]
+
+[project.scripts]
+deploy-agent = "main:main"
+
+[project.urls]
+Homepage = "https://github.com/auto-deploy-agent/cli"
+Repository = "https://github.com/auto-deploy-agent/cli"
