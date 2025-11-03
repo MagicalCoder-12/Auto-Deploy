@@ -55,6 +55,47 @@ A command-line tool that automatically detects, builds, and deploys web projects
    ollama pull llama3.1:8b
    ```
 
+### Alternative Installation Using setup.py
+
+You can also install the Auto Deploy Agent as a package using the setup.py file:
+
+```bash
+pip install .
+```
+
+This will install the package and make the `deploy-agent` command available globally.
+
+## Platform CLI Installation Commands
+
+If you prefer to manually install the required CLIs for each platform, you can use the following commands:
+
+### Vercel
+```bash
+npm install -g vercel
+```
+
+### Netlify
+```bash
+npm install -g netlify-cli
+```
+
+### Cloudflare Pages
+```bash
+npm install -g wrangler
+```
+
+### GitHub Pages and Render
+These platforms use Git for deployment, so you need to have Git installed:
+```bash
+# For Windows: Download from https://git-scm.com/downloads
+# For macOS (with Homebrew):
+brew install git
+# For Ubuntu/Debian:
+sudo apt install git
+# For CentOS/RHEL:
+sudo yum install git
+```
+
 ## Usage
 
 You can run the Auto Deploy Agent in several ways:
