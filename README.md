@@ -57,16 +57,24 @@ A command-line tool that automatically detects, builds, and deploys web projects
 
 ## Usage
 
-1. Navigate to your web project directory
-2. Run the deploy agent:
-   ```bash
-   python main.py
-   ```
-   
-   Or use the legacy entry point:
-   ```bash
-   python deploy_agent.py
-   ```
+You can run the Auto Deploy Agent in several ways:
+
+### Method 1: Using the provided scripts (Recommended)
+From the project directory, run:
+- **Windows**: `deploy.bat`
+- **macOS/Linux**: `./deploy.sh`
+
+### Method 2: Direct Python execution
+From the project directory, run:
+```bash
+python main.py
+```
+
+### Method 3: Legacy entry point
+From the project directory, run:
+```bash
+python deploy_agent.py
+```
 
 The tool will:
 1. Detect your project type

@@ -315,20 +315,137 @@ cython_debug/
         print(f"❌ Failed to create .gitignore file: {e}")
         return False
 
+def is_git_repo():
+    """Check if the current directory is a Git repository."""
+    return os.path.exists(".git")
+
+def get_git_remote_url():
+    """Get the remote URL of the Git repository if it exists."""
+    try:
+        result = subprocess.run("git remote get-url origin", capture_output=True, text=True, shell=True, timeout=10)
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except subprocess.TimeoutExpired:
+        print("⚠️ Checking remote repository timed out")
+    except Exception as e:
+        print(f"⚠️ Error checking remote repository: {e}")
+    return None
+
+def has_uncommitted_changes():
+    """Check if there are uncommitted changes in the Git repository."""
+    try:
+        result = subprocess.run("git status --porcelain", capture_output=True, text=True, shell=True, timeout=10)
+        return bool(result.stdout.strip())
+    except subprocess.TimeoutExpired:
+        print("⚠️ Checking git status timed out")
+        return False
+    except Exception as e:
+        print(f"⚠️ Error checking git status: {e}")
+        return False
+
+def git_add_and_commit(commit_message="Initial commit"):
+    """Add all files and commit them."""
+    try:
+        # Check if there are any changes to commit
+        if not has_uncommitted_changes():
+            print("✅ No changes to commit.")
+            return True
+            
+        print("➕ Adding files to git...")
+        subprocess.run("git add .", check=True, shell=True, timeout=30)
+        
+        print("📝 Committing changes...")
+        # Properly escape single quotes in commit message to avoid shell parsing issues
+        escaped_commit_message = commit_message.replace("'", "'\"'\"'")
+        subprocess.run(f"git commit -m '{escaped_commit_message}'", check=True, shell=True, timeout=30)
+        return True
+    except subprocess.TimeoutExpired:
+        print("❌ Git add/commit timed out")
+        return False
+    except subprocess.CalledProcessError as e:
+        # Check if it's a "nothing to commit" error
+        if "nothing to commit" in str(e):
+            print("✅ No changes to commit.")
+            return True
+        print(f"❌ Git add/commit failed: {e}")
+        return False
+    except Exception as e:
+        print(f"❌ Git add/commit error: {e}")
+        return False
+
+def git_push_to_remote():
+    """Push changes to the remote repository."""
+    try:
+        print("🚀 Pushing to remote repository...")
+        subprocess.run("git push -u origin main", check=True, shell=True, timeout=120)
+        print("✅ Pushed to remote repository!")
+        return True
+    except subprocess.TimeoutExpired:
+        print("❌ Git push timed out")
+        return False
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Git push failed: {e}")
+        return False
+    except Exception as e:
+        print(f"❌ Git push error: {e}")
+        return False
+
 def init_git_repo():
     """Initialize dir as git repo with user permission, and connect to remote."""
-    if os.path.exists(".git"):
+    if is_git_repo():
         print("✅ This directory is already a git repository.")
-        # Check if remote exists
-        try:
-            result = subprocess.run("git remote get-url origin", capture_output=True, text=True, shell=True, timeout=10)
-            if result.returncode == 0 and result.stdout.strip():
-                print(f"🔗 Already connected to remote: {result.stdout.strip()}")
+        remote_url = get_git_remote_url()
+        if remote_url:
+            print(f"🔗 Already connected to remote: {remote_url}")
+            
+            # Check if there are uncommitted changes
+            if has_uncommitted_changes():
+                print("📝 Found uncommitted changes.")
+                commit_msg = input("Enter commit message (default: 'Update project files'): ") or "Update project files"
+                if not git_add_and_commit(commit_msg):
+                    print("❌ Failed to commit changes.")
+                    return False
+            else:
+                print("✅ No changes to commit.")
+            
+            push_permission = input("Do you want to push changes to the remote repository now? (y/n): ")
+            if push_permission.lower() == 'y':
+                return git_push_to_remote()
+            
+            return True
+        else:
+            print("⚠️ No remote repository configured.")
+            repo_url = input("Enter your remote Git repository URL (e.g., https://github.com/user/repo.git) or leave blank to skip: ").strip()
+            if repo_url:
+                try:
+                    subprocess.run(f"git remote add origin {repo_url}", check=True, shell=True, timeout=30)
+                    subprocess.run("git branch -M main", check=True, shell=True, timeout=30)
+                    
+                    # Check if there are uncommitted changes
+                    if has_uncommitted_changes():
+                        commit_msg = input("Enter commit message (default: 'Initial commit'): ") or "Initial commit"
+                        if not git_add_and_commit(commit_msg):
+                            print("❌ Failed to commit changes.")
+                            return False
+                    else:
+                        print("✅ No changes to commit.")
+                    
+                    push_permission = input("Do you want to push to the remote repository now? (y/n): ")
+                    if push_permission.lower() == 'y':
+                        return git_push_to_remote()
+                    return True
+                except subprocess.TimeoutExpired:
+                    print("❌ Git remote setup timed out")
+                    return False
+                except subprocess.CalledProcessError as e:
+                    print(f"❌ Git remote setup failed: {e}")
+                    return False
+                except Exception as e:
+                    print(f"❌ Git remote setup error: {e}")
+                    return False
+            else:
+                print("ℹ️ Skipped remote repository setup.")
                 return True
-        except subprocess.TimeoutExpired:
-            print("⚠️ Checking remote repository timed out")
-        except Exception as e:
-            print(f"⚠️ Error checking remote repository: {e}")
 
     permission = input("Do you want me to initialize a git repository for this project? (y/n): ")
     if permission.lower() != 'y':
@@ -351,9 +468,11 @@ def init_git_repo():
             
         create_gitignore(project_type)
         
-        subprocess.run("git add .", check=True, shell=True, timeout=30)
+        # Add and commit files
         commit_msg = input("Enter commit message (default: 'Initial commit'): ") or "Initial commit"
-        subprocess.run(f"git commit -m '{commit_msg}'", check=True, shell=True, timeout=30)
+        if not git_add_and_commit(commit_msg):
+            print("❌ Failed to commit changes.")
+            return False
 
         # Ask for remote repository URL
         repo_url = input("Enter your remote Git repository URL (e.g., https://github.com/user/repo.git) or leave blank to skip: ").strip()

@@ -74,15 +74,35 @@ if __name__ == '__main__':
     # Create vercel.json for Vercel deployments if missing
     if platform == "Vercel" and not os.path.exists("vercel.json"):
         print("⚠️ vercel.json not found. Creating configuration...")
-        vercel_config = {
-            "version": 2,
-            "builds": [{"src": "app.py", "use": "@vercel/python"}],
-            "routes": [{"src": "/(.*)", "dest": "/app.py"}]
-        }
         
-        if project_type == "python-flask":
-            vercel_config["builds"] = [{"src": "api/index.py", "use": "@vercel/python"}]
-            vercel_config["routes"] = [{"src": "/(.*)", "dest": "api/index.py"}]
+        # For Vite projects, we need a static site configuration
+        if project_type == "vite":
+            vercel_config = {
+                "version": 2,
+                "builds": [
+                    {
+                        "src": "package.json",
+                        "use": "@vercel/static-build",
+                        "config": {
+                            "distDir": "dist"
+                        }
+                    }
+                ]
+            }
+        # For Python Flask projects, we need the Python configuration
+        elif project_type == "python-flask":
+            vercel_config = {
+                "version": 2,
+                "builds": [{"src": "api/index.py", "use": "@vercel/python"}],
+                "routes": [{"src": "/(.*)", "dest": "api/index.py"}]
+            }
+        # For other project types, use a generic Python configuration
+        else:
+            vercel_config = {
+                "version": 2,
+                "builds": [{"src": "app.py", "use": "@vercel/python"}],
+                "routes": [{"src": "/(.*)", "dest": "/app.py"}]
+            }
             
         with open("vercel.json", "w") as f:
             json.dump(vercel_config, f, indent=2)
