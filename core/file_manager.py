@@ -6,14 +6,14 @@ import os
 
 def create_required_files(project_type, platform):
     """Create required deployment files if they don't exist."""
-    print("📄 Checking and creating required deployment files...")
+    print("Checking and creating required deployment files...")
     
     # Import PROJECT_DIR here to avoid circular imports
     from config import PROJECT_DIR
     
     # Create package.json for Node.js projects if missing
     if project_type in ["nextjs", "vite", "react"] and not os.path.exists("package.json"):
-        print("⚠️ package.json not found. Creating a basic one...")
+        print("package.json not found. Creating a basic one...")
         package_json = {
             "name": PROJECT_DIR.name.lower().replace(" ", "-"),
             "version": "1.0.0",
@@ -43,19 +43,19 @@ def create_required_files(project_type, platform):
             
         with open("package.json", "w") as f:
             json.dump(package_json, f, indent=2)
-        print("✅ Created package.json")
+        print("Created package.json")
     
     # Create requirements.txt for Python projects if missing
     if project_type == "python-flask" and not os.path.exists("requirements.txt"):
-        print("⚠️ requirements.txt not found. Creating a basic one...")
+        print("requirements.txt not found. Creating a basic one...")
         with open("requirements.txt", "w") as f:
             f.write("Flask==2.0.1\n")
             f.write("gunicorn==20.1.0\n")
-        print("✅ Created requirements.txt")
+        print("Created requirements.txt")
     
     # Create basic app.py for Flask projects if missing
-    if project_type == "python-flask" and not os.path.exists("app.py"):
-        print("⚠️ app.py not found. Creating a basic Flask app...")
+    if project_type == "python-flask" and not os.path.exists("app.py") and not os.path.exists("api/index.py"):
+        print("app.py not found. Creating a basic Flask app...")
         flask_app_content = '''from flask import Flask
 
 app = Flask(__name__)
@@ -64,16 +64,19 @@ app = Flask(__name__)
 def hello():
     return '<h1>Hello from Flask!</h1>'
 
+# Expose the Flask app as 'application' for Vercel
+application = app
+
 if __name__ == '__main__':
     app.run(debug=True)
 '''
         with open("app.py", "w") as f:
             f.write(flask_app_content)
-        print("✅ Created app.py")
+        print("Created app.py")
     
     # Create vercel.json for Vercel deployments if missing
     if platform == "Vercel" and not os.path.exists("vercel.json"):
-        print("⚠️ vercel.json not found. Creating configuration...")
+        print("vercel.json not found. Creating configuration...")
         
         # For Vite projects, we need a static site configuration
         if project_type == "vite":
@@ -106,11 +109,11 @@ if __name__ == '__main__':
             
         with open("vercel.json", "w") as f:
             json.dump(vercel_config, f, indent=2)
-        print("✅ Created vercel.json")
+        print("Created vercel.json")
     
     # Create index.html for static sites if missing
     if project_type == "static" and not os.path.exists("index.html"):
-        print("⚠️ index.html not found. Creating a basic one...")
+        print("index.html not found. Creating a basic one...")
         html_content = '''<!DOCTYPE html>
 <html>
 <head>
@@ -124,6 +127,6 @@ if __name__ == '__main__':
 '''
         with open("index.html", "w") as f:
             f.write(html_content)
-        print("✅ Created index.html")
+        print("Created index.html")
     
     return True

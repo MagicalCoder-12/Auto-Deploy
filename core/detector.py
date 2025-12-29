@@ -3,38 +3,44 @@
 
 import json
 import os
+import sys
 from pathlib import Path
 
 try:
     import ollama
     OLLAMA_AVAILABLE = True
 except ImportError:
+    ollama = None
     OLLAMA_AVAILABLE = False
 
 from config import PROJECT_DIR
+from core.model_selector import get_model_name
 
 def detect_project_type():
     """Detect what kind of web project this is using Ollama with Llama3.1."""
     files = [f.name for f in PROJECT_DIR.iterdir() if f.is_file()]
     folders = [f.name for f in PROJECT_DIR.iterdir() if f.is_dir()]
 
-    if OLLAMA_AVAILABLE:
+    if OLLAMA_AVAILABLE and ollama is not None:
         try:
             prompt = f"""
             You are an expert DevOps assistant. Based on these files: {', '.join(files)} and folders: {', '.join(folders)},
             detect the web project type. Possible types: nextjs, vite, react, static, python-flask, or unknown.
             Respond in JSON format: {{"type": "...", "reason": "..."}}.
             """
+            # Add a timeout to prevent hanging
+            from config import OLLAMA_MODEL
             response = ollama.chat(
-                model="llama3.1:8b",  # Updated to use llama3.1:8b model
+                model=OLLAMA_MODEL,
                 messages=[{"role": "user", "content": prompt}],
-                format="json"
+                format="json",
+                options={"timeout": 30}
             )
             result = json.loads(response["message"]["content"])
-            print(f"🔍 Project detection reason: {result['reason']}")
+            print(f"Project detection reason: {result['reason']}")
             return result["type"]
         except Exception as e:
-            print(f"⚠️ Ollama detection failed: {e}")
+            print(f"Ollama detection failed: {e}")
             print("Falling back to default detection...")
 
     # Fallback to original hardcoded detection
