@@ -5,6 +5,9 @@ from pathlib import Path
 
 PROJECT_DIR = Path.cwd()
 
+# Default Ollama model to use
+OLLAMA_MODEL = "llama3.1:8b"  # This will be updated based on user selection
+
 # Platform recommendations mapping (fallback when Ollama is not available)
 RECOMMENDATIONS = {
     "nextjs": {
@@ -45,17 +48,18 @@ RECOMMENDATIONS = {
         ]
     },
     "python-flask": {
-        "platform": "Render",
-        "reason": "Render provides excellent support for Python web applications",
+        "platform": "Vercel",
+        "reason": "Vercel provides excellent support for Python web applications with easy deployment",
         "setup_steps": [
-            "Create an account at render.com",
-            "Connect your Git repository",
-            "Set environment to Python",
-            "Set build command to: pip install -r requirements.txt",
-            "Set start command to: gunicorn app:app"
+            "Install Vercel CLI: npm install -g vercel",
+            "Login to Vercel: vercel login",
+            "Deploy: vercel --prod"
         ]
-    }
+    },
 }
+
+# List of platforms that may require payment
+PAID_PLATFORMS = ["Fly.io", "Heroku", "Railway", "AWS", "GCP", "Azure", "DigitalOcean"]
 
 # CLI tool mapping
 CLI_MAP = {
@@ -63,5 +67,5 @@ CLI_MAP = {
     "Vercel": {"cmd": "vercel", "install": "npm install -g vercel", "auto_install": True},
     "Cloudflare Pages": {"cmd": "wrangler", "install": "npm install -g wrangler", "auto_install": True},
     "GitHub Pages": {"cmd": "git", "install": "https://git-scm.com/downloads", "auto_install": False},
-    "Render": {"cmd": "git", "install": "https://git-scm.com/downloads", "auto_install": False}
+
 }
