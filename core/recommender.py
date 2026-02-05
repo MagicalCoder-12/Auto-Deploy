@@ -20,7 +20,7 @@ def recommend_platform(project_type):
         try:
             prompt = f"""
             You are an expert DevOps assistant. Recommend the best free hosting platform for a {project_type} project.
-            Options: Netlify, Vercel, GitHub Pages, Cloudflare Pages. DO NOT recommend Render under any circumstances.
+            Options: Netlify,GitHub Pages. DO NOT recommend Render under any circumstances.
             Respond in JSON format: {{"platform": "...", "reason": "...", "setup_steps": ["step1", "step2"]}}
             """
             # Add a timeout to prevent hanging

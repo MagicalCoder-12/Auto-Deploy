@@ -322,7 +322,7 @@ def is_git_repo():
 def get_git_remote_url():
     """Get the remote URL of the Git repository if it exists."""
     try:
-        result = subprocess.run("git remote get-url origin", capture_output=True, text=True, shell=True, timeout=10)
+        result = subprocess.run("git remote get-url origin", capture_output=True, text=True, encoding="utf-8", errors="replace", shell=True, timeout=10)
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
     except subprocess.TimeoutExpired:
@@ -334,7 +334,7 @@ def get_git_remote_url():
 def has_uncommitted_changes():
     """Check if there are uncommitted changes in the Git repository."""
     try:
-        result = subprocess.run("git status --porcelain", capture_output=True, text=True, shell=True, timeout=10)
+        result = subprocess.run("git status --porcelain", capture_output=True, text=True, encoding="utf-8", errors="replace", shell=True, timeout=10)
         return bool(result.stdout.strip())
     except subprocess.TimeoutExpired:
         print("Checking git status timed out")
@@ -342,6 +342,79 @@ def has_uncommitted_changes():
     except Exception as e:
         print(f"Error checking git status: {e}")
         return False
+
+def generate_commit_message():
+    """Generate a meaningful commit message using Ollama (with fallback to file-based logic)."""
+    try:
+        # Get file changes
+        result = subprocess.run("git diff --name-only --cached", capture_output=True, text=True, encoding="utf-8", errors="replace", shell=True, timeout=10)
+        staged_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        
+        result = subprocess.run("git diff --name-only", capture_output=True, text=True, encoding="utf-8", errors="replace", shell=True, timeout=10)
+        unstaged_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        
+        all_files = [f for f in staged_files + unstaged_files if f]
+        
+        if not all_files:
+            return "Update project files"
+        
+        # Try to use Ollama to generate a smart commit message
+        try:
+            import ollama
+            from config import OLLAMA_MODEL
+            
+            # Get git diff content to analyze
+            diff_result = subprocess.run("git diff --no-color HEAD", capture_output=True, text=True, encoding="utf-8", errors="replace", shell=True, timeout=15)
+            diff_content = diff_result.stdout[:2000]  # Limit to first 2000 chars to avoid token overflow
+            
+            files_list = ", ".join(all_files[:10])  # Show first 10 files
+            
+            prompt = f"""Analyze these git changes and generate a concise, conventional commit message (format: type: description).
+Files changed: {files_list}
+{'...' if len(all_files) > 10 else ''}
+
+Diff preview:
+{diff_content}
+
+Generate ONE commit message in conventional commit format. Be concise (50 chars max). No extra text."""
+            
+            response = ollama.chat(
+                model=OLLAMA_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                options={"timeout": 10}
+            )
+            
+            commit_msg = response["message"]["content"].strip()
+            # Ensure it's a valid commit message (remove quotes, extra whitespace)
+            commit_msg = commit_msg.replace('"', '').replace("'", '').strip()
+            
+            if commit_msg and len(commit_msg) > 0 and len(commit_msg) < 200:
+                return commit_msg
+        except Exception as e:
+            # Ollama failed, will use fallback
+            pass
+        
+        # Fallback: Categorize files and generate message
+        config_files = [f for f in all_files if any(x in f for x in ['config', '.env', '.json', 'requirements', 'package'])]
+        src_files = [f for f in all_files if any(x in f for x in ['src', 'app.py', 'index', '.py', '.js', '.ts'])]
+        doc_files = [f for f in all_files if any(x in f for x in ['README', '.md', 'docs'])]
+        deploy_files = [f for f in all_files if any(x in f for x in ['vercel', 'netlify', 'deploy'])]
+        
+        # Generate message based on what changed
+        if deploy_files and len(all_files) <= 3:
+            return "chore: update deployment configuration"
+        elif config_files and src_files:
+            return "feat: update application code and configuration"
+        elif src_files:
+            return f"feat: update application code ({len(src_files)} files)"
+        elif config_files:
+            return "chore: update configuration files"
+        elif doc_files:
+            return "docs: update documentation"
+        else:
+            return f"chore: update project files ({len(all_files)} files)"
+    except Exception:
+        return "Auto-generated commit"
 
 def git_add_and_commit(commit_message="Initial commit"):
     """Add all files and commit them."""
@@ -352,11 +425,11 @@ def git_add_and_commit(commit_message="Initial commit"):
             return True
             
         print("Adding files to git...")
-        subprocess.run("git add .", check=True, shell=True, timeout=30)
+        subprocess.run("git add .", check=True, shell=True, text=True, encoding="utf-8", errors="replace", timeout=30)
         
         print("Committing changes...")
         # Use subprocess with list arguments to avoid shell injection issues
-        subprocess.run(["git", "commit", "-m", commit_message], check=True, timeout=30)
+        subprocess.run(["git", "commit", "-m", commit_message], check=True, text=True, encoding="utf-8", errors="replace", timeout=30)
         return True
     except subprocess.TimeoutExpired:
         print("Git add/commit timed out")
@@ -376,7 +449,7 @@ def git_push_to_remote():
     """Push changes to the remote repository."""
     try:
         print("Pushing to remote repository...")
-        subprocess.run("git push -u origin main", check=True, shell=True, timeout=120)
+        subprocess.run("git push -u origin main", check=True, shell=True, text=True, encoding="utf-8", errors="replace", timeout=120)
         print("Pushed to remote repository!")
         return True
     except subprocess.TimeoutExpired:
@@ -389,73 +462,30 @@ def git_push_to_remote():
         print(f"Git push error: {e}")
         return False
 
-def init_git_repo():
-    """Initialize dir as git repo with user permission, and connect to remote."""
+def init_git_repo(auto_init=False):
+    """Initialize dir as git repo. If auto_init=True, skip permission prompts."""
     if is_git_repo():
         print("This directory is already a git repository.")
         remote_url = get_git_remote_url()
         if remote_url:
             print(f"Already connected to remote: {remote_url}")
-            
-            # Check if there are uncommitted changes
-            if has_uncommitted_changes():
-                print("Found uncommitted changes.")
-                commit_msg = input("Enter commit message (default: 'Update project files'): ") or "Update project files"
-                if not git_add_and_commit(commit_msg):
-                    print("Failed to commit changes.")
-                    return False
-            else:
-                print("No changes to commit.")
-            
-            push_permission = input("Do you want to push changes to the remote repository now? (y/n): ")
-            if push_permission.lower() == 'y':
-                return git_push_to_remote()
-            
             return True
         else:
             print("No remote repository configured.")
-            repo_url = input("Enter your remote Git repository URL (e.g., https://github.com/user/repo.git) or leave blank to skip: ").strip()
-            if repo_url:
-                try:
-                    subprocess.run(f"git remote add origin {repo_url}", check=True, shell=True, timeout=30)
-                    subprocess.run("git branch -M main", check=True, shell=True, timeout=30)
-                    
-                    # Check if there are uncommitted changes
-                    if has_uncommitted_changes():
-                        commit_msg = input("Enter commit message (default: 'Initial commit'): ") or "Initial commit"
-                        if not git_add_and_commit(commit_msg):
-                            print("Failed to commit changes.")
-                            return False
-                    else:
-                        print("No changes to commit.")
-                    
-                    push_permission = input("Do you want to push to the remote repository now? (y/n): ")
-                    if push_permission.lower() == 'y':
-                        return git_push_to_remote()
-                    return True
-                except subprocess.TimeoutExpired:
-                    print("Git remote setup timed out")
-                    return False
-                except subprocess.CalledProcessError as e:
-                    print(f"Git remote setup failed: {e}")
-                    return False
-                except Exception as e:
-                    print(f"Git remote setup error: {e}")
-                    return False
-            else:
-                print("Skipped remote repository setup.")
-                return True
-
-    permission = input("Do you want me to initialize a git repository for this project? (y/n): ")
-    if permission.lower() != 'y':
-        return False
+            return True
+    
+    if not auto_init:
+        permission = input("Do you want me to initialize a git repository for this project? (y/n): ")
+        if permission.lower() != 'y':
+            return False
+    else:
+        print("Initializing git repository automatically...")
 
     try:
         print("Initializing git repo...")
-        subprocess.run("git init", check=True, shell=True, timeout=30)
+        subprocess.run("git init", check=True, shell=True, text=True, encoding="utf-8", errors="replace", timeout=30)
         
         # Create .gitignore file
-        # We'll determine project type by checking existing files
         files = [f.name for f in PROJECT_DIR.iterdir() if f.is_file()]
         project_type = "unknown"
         if "package.json" in files:
@@ -467,24 +497,11 @@ def init_git_repo():
             
         create_gitignore(project_type)
         
-        # Add and commit files
-        commit_msg = input("Enter commit message (default: 'Initial commit'): ") or "Initial commit"
+        # Auto-commit files with generated message
+        commit_msg = "chore: initial project setup"
         if not git_add_and_commit(commit_msg):
             print("Failed to commit changes.")
             return False
-
-        # Ask for remote repository URL
-        repo_url = input("Enter your remote Git repository URL (e.g., https://github.com/user/repo.git) or leave blank to skip: ").strip()
-        if repo_url:
-            subprocess.run(f"git remote add origin {repo_url}", check=True, shell=True, timeout=30)
-            subprocess.run("git branch -M main", check=True, shell=True, timeout=30)
-            push_permission = input("Do you want to push to the remote repository now? (y/n): ")
-            if push_permission.lower() == 'y':
-                print("Pushing to remote repository...")
-                subprocess.run("git push -u origin main", check=True, shell=True, timeout=120)
-                print("Pushed to remote repository!")
-        else:
-            print("Skipped remote repository setup. You can add it later with 'git remote add origin <url>'")
             
         return True
     except subprocess.TimeoutExpired:

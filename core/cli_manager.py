@@ -7,7 +7,7 @@ from config import CLI_MAP
 def check_cli_installed(cli_command):
     """Check if a CLI tool is installed by running --version."""
     try:
-        result = subprocess.run(f"{cli_command} --version", capture_output=True, text=True, shell=True, timeout=10)
+        result = subprocess.run(f"{cli_command} --version", capture_output=True, text=True, encoding="utf-8", errors="replace", shell=True, timeout=10)
         return result.returncode == 0
     except subprocess.TimeoutExpired:
         print(f"Command '{cli_command} --version' timed out")
@@ -35,7 +35,7 @@ def install_cli(platform):
         if permission.lower() == 'y':
             try:
                 print(f"Installing {cli_info['cmd']}...")
-                result = subprocess.run(cli_info["install"], capture_output=True, text=True, shell=True, timeout=120)
+                result = subprocess.run(cli_info["install"], capture_output=True, text=True, encoding="utf-8", errors="replace", shell=True, timeout=120)
                 if result.returncode == 0:
                     print("Installation successful!")
                     return True
