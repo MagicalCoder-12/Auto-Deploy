@@ -5,6 +5,14 @@ import time
 import sys
 
 from config import PROJECT_DIR
+try:
+    from dotenv import load_dotenv
+    from pathlib import Path
+    # Load .env from the project root (same directory as this file)
+    base_dir = Path(__file__).resolve().parent
+    load_dotenv(dotenv_path=base_dir / ".env")
+except ImportError:
+    print("python-dotenv not installed; .env will not be loaded automatically. Run: pip install python-dotenv")
 from core.detector import detect_project_type
 from core.recommender import recommend_platform
 from core.cli_manager import install_cli

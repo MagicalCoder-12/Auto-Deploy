@@ -6,6 +6,18 @@ import os
 import shutil
 import sys
 from config import PAID_PLATFORMS
+from pathlib import Path
+
+# Attempt to load .env from project root as a fallback so deploy functions
+# work when the module is run/imported directly (in addition to main.py loading it).
+try:
+    from dotenv import load_dotenv
+    _project_root = Path(__file__).resolve().parents[1]
+    load_dotenv(dotenv_path=_project_root / ".env")
+except Exception:
+    # If python-dotenv isn't installed or load fails, continue silently;
+    # main.py already attempts to load .env when available.
+    pass
 
 def check_paid_platform_confirmation(platform):
     """Check if platform is paid and ask for user confirmation."""
@@ -43,29 +55,46 @@ def vercel_login():
         return False
 
 def deploy_to_netlify():
-    """Deploy using Netlify CLI."""
-    try:
-        print("Initializing Netlify...")
-        init_result = subprocess.run("netlify init --manual", capture_output=True, text=True, shell=True, timeout=120)
-        if init_result.returncode != 0:
-            print(f"Init failed: {init_result.stderr}")
-            if input("Log in to Netlify now? (y/n): ").lower() == 'y':
-                subprocess.run("netlify login", capture_output=True, text=True, shell=True, timeout=60)
+    import subprocess
+    import os
 
+    try:
         print("Deploying to Netlify...")
-        result = subprocess.run("netlify deploy --prod", capture_output=True, text=True, shell=True, timeout=300)
+
+        netlify_site = os.getenv("NETLIFY_SITE_ID")
+        netlify_token = os.getenv("NETLIFY_AUTH_TOKEN")
+        if not netlify_site or not netlify_token:
+            print("Missing NETLIFY_SITE_ID or NETLIFY_AUTH_TOKEN. Create a .env at project root or export variables.")
+            return False
+
+        cmd = (
+            f"netlify deploy --prod "
+            f"--site {netlify_site} "
+            f"--auth {netlify_token} "
+            f"--message \"Auto deploy\""
+        )
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            shell=True,
+            timeout=300
+        )
+
         if result.returncode == 0:
-            print("Deployed!")
-            for line in result.stdout.split('\n'):
-                if "unique URL" in line:
-                    print(f"Live URL: {line.split(': ')[-1]}")
-                    break
+            print("Deployed! 🚀")
+            for line in result.stdout.splitlines():
+                if "Live URL" in line or "Website URL" in line:
+                    print(line)
             return True
         else:
-            print(f"Failed: {result.stderr}")
+            print("Deploy failed ❌")
+            print(result.stderr)
             return False
+
     except subprocess.TimeoutExpired:
-        print("Netlify deployment timed out")
+        print("Netlify deployment timed out ⏱️")
         return False
     except Exception as e:
         print(f"Error: {e}")
