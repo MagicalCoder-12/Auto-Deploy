@@ -8,13 +8,13 @@ from config import PROJECT_DIR
 def check_node_installed():
     """Check if Node.js and npm are installed and accessible."""
     try:
-        node_result = subprocess.run("node --version", capture_output=True, text=True, shell=True, timeout=10)
+        node_result = subprocess.run("node --version", capture_output=True, text=True, encoding="utf-8", errors="replace", shell=True, timeout=10)
         if node_result.returncode != 0:
             print("Node.js not found.")
             return False
         print(f"Node.js version: {node_result.stdout.strip()}")
 
-        npm_result = subprocess.run("npm --version", capture_output=True, text=True, shell=True, timeout=10)
+        npm_result = subprocess.run("npm --version", capture_output=True, text=True, encoding="utf-8", errors="replace", shell=True, timeout=10)
         if npm_result.returncode != 0:
             print("npm not found.")
             return False
@@ -31,7 +31,7 @@ def install_dependencies():
     """Install project dependencies."""
     print("Installing project dependencies...")
     try:
-        result = subprocess.run("npm install", capture_output=True, text=True, shell=True, cwd=PROJECT_DIR, timeout=300)
+        result = subprocess.run("npm install", capture_output=True, text=True, encoding="utf-8", errors="replace", shell=True, cwd=PROJECT_DIR, timeout=300)
         if result.returncode == 0:
             print("Dependencies installed successfully!")
             return True
@@ -64,7 +64,7 @@ def build_project(project_type):
 
         try:
             print("Running npm run build...")
-            result = subprocess.run("npm run build", capture_output=True, text=True, cwd=PROJECT_DIR, shell=True, timeout=600)
+            result = subprocess.run("npm run build", capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=PROJECT_DIR, shell=True, timeout=600)
             if result.returncode == 0:
                 print("Build successful!")
                 return True
@@ -76,7 +76,7 @@ def build_project(project_type):
                 if "not recognized" in result.stderr.lower() or "command not found" in result.stderr.lower():
                     if input("Install dependencies now? (y/n): ").lower() == 'y':
                         if install_dependencies():
-                            retry_result = subprocess.run("npm run build", capture_output=True, text=True, cwd=PROJECT_DIR, shell=True, timeout=600)
+                            retry_result = subprocess.run("npm run build", capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=PROJECT_DIR, shell=True, timeout=600)
                             if retry_result.returncode == 0:
                                 return True
                 return False

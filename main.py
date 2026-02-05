@@ -17,13 +17,13 @@ from core.detector import detect_project_type
 from core.recommender import recommend_platform
 from core.cli_manager import install_cli
 from core.file_manager import create_required_files
-from core.git_handler import init_git_repo, is_git_repo, get_git_remote_url, git_add_and_commit, git_push_to_remote, has_uncommitted_changes
+from core.git_handler import init_git_repo, is_git_repo, get_git_remote_url, git_add_and_commit, git_push_to_remote, has_uncommitted_changes, generate_commit_message
 from core.builder import build_project
 from core.deployer import deploy_to_platform, deploy_to_platform_flask, validate_deployment, check_paid_platform_confirmation
 from core.model_selector import get_model_name
 
 def ensure_git_ready_for_deployment(platform):
-    """Ensure Git repository is ready for deployment to Git-dependent platforms."""
+    """Ensure Git repository is ready for deployment (fully automated, no prompts)."""
     # Platforms that require Git
     git_required_platforms = ["GitHub Pages", "Render"]
     
@@ -32,53 +32,37 @@ def ensure_git_ready_for_deployment(platform):
     
     print(f"\nEnsuring Git repository is ready for {platform} deployment...")
     
-    # Check if this is a Git repository
+    # Check if this is a Git repository, if not initialize it
     if not is_git_repo():
-        print(f"{platform} requires a Git repository, but this directory is not a Git repository.")
-        permission = input("Do you want me to initialize a git repository for this project? (y/n): ")
-        if permission.lower() != 'y':
-            print("\nNo problem! Git repository initialization was skipped as requested. Since GitHub Pages requires a Git repository, deployment cannot continue.")
-            print("Thanks for trying Auto Deploy Agent — see you next deploy 🚀")
-            return False
-            
-        # Initialize Git repository
-        if not init_git_repo():
+        print(f"{platform} requires a Git repository. Initializing one...")
+        if not init_git_repo(auto_init=True):
             print("Failed to initialize Git repository.")
             return False
     
-    # Check if there's a remote URL
+    # Check if there's a remote URL configured
     remote_url = get_git_remote_url()
     if not remote_url:
-        print(f"{platform} requires a remote Git repository, but none is configured.")
-        repo_url = input("Enter your remote Git repository URL (e.g., https://github.com/user/repo.git): ").strip()
-        if not repo_url:
-            print("Cannot proceed with deployment without remote repository.")
-            return False
-            
-        try:
-            import subprocess
-            subprocess.run(f"git remote add origin {repo_url}", check=True, shell=True, timeout=30)
-            subprocess.run("git branch -M main", check=True, shell=True, timeout=30)
-        except Exception as e:
-            print(f"Failed to configure remote repository: {e}")
-            return False
+        print(f"⚠️  No remote repository configured for {platform}.")
+        print("Set up a remote with: git remote add origin <your-repo-url>")
+        return False  # Cannot auto-configure remote without user input
     
-    # Check for uncommitted changes and commit them
+    print(f"✓ Connected to remote: {remote_url}")
+    
+    # Auto-detect changes, commit, and push (no prompts)
     if has_uncommitted_changes():
-        print("Found uncommitted changes. Committing them before deployment...")
-        commit_msg = input("Enter commit message (default: 'Prepare for deployment'): ") or "Prepare for deployment"
+        print("Detected changes. Auto-committing...")
+        commit_msg = generate_commit_message()
+        print(f"  Commit message: {commit_msg}")
         if not git_add_and_commit(commit_msg):
             print("Failed to commit changes.")
             return False
-    else:
-        print("No changes to commit.")
-    
-    # Push to remote repository
-    push_permission = input("Do you want to push changes to the remote repository before deployment? (y/n): ")
-    if push_permission.lower() == 'y':
+        
+        print("Pushing to remote...")
         if not git_push_to_remote():
             print("Failed to push to remote repository.")
             return False
+    else:
+        print("✓ No changes to commit.")
     
     return True
 
@@ -144,25 +128,35 @@ def main():
         print("Failed to create required files. Cannot proceed.")
         return
 
-    # 6. Initialize git repo with user permission and connect to remote
+    # 6. Initialize git repo (auto-init if not already initialized)
     print("\nInitializing Git repository...")
-    if not init_git_repo():
-        print("\nNo problem! Git repository initialization was skipped as requested. Since GitHub Pages requires a Git repository, deployment cannot continue.")
-        print("Thanks for trying Auto Deploy Agent — see you next deploy 🚀")
-        return
-
+    if not init_git_repo(auto_init=True):
+        print("⚠️  Git initialization skipped or failed.")
+    
     # 7. For platforms that require Git, ensure repository is ready for deployment
     if not ensure_git_ready_for_deployment(platform):
         # The error message is handled within ensure_git_ready_for_deployment
         return
+    
+    # 8. Auto-commit any remaining project changes before build/deploy (universal for all platforms)
+    if is_git_repo() and has_uncommitted_changes():
+        print("\nAuto-committing project changes...")
+        commit_msg = generate_commit_message()
+        print(f"  Commit: {commit_msg}")
+        git_add_and_commit(commit_msg)
+        
+        # Push if remote is configured
+        if get_git_remote_url():
+            print("Pushing to remote...")
+            git_push_to_remote()
 
-    # 8. Build project if necessary
+    # 9. Build project if necessary
     print("\nBuilding project...")
     if not build_project(project_type):
         print("Build failed. Cannot proceed.")
         return
 
-    # 9. Deploy to the selected platform
+    # 10. Deploy to the selected platform
     print(f"\nDeploying to {platform}...")
     if project_type == "python-flask":
         success = deploy_to_platform_flask(platform)
@@ -170,17 +164,35 @@ def main():
         success = deploy_to_platform(platform)
 
     if success:
-        print(f"\nDeployment to {platform} completed successfully!")
-        if platform in ["GitHub Pages", "Render"]:
-            print("Note: For git-based platforms, push changes for updates.")
+        print(f"\n✓ Deployment to {platform} completed successfully!")
         
-        # 10. Validate deployment
+        # 11. Validate deployment
         validate_deployment(platform, project_type)
         
         print("\nThank you for using Auto Deploy Agent CLI!")
-        print("   If you have any issues or suggestions, please let us know.")
+        print("Your project is now live and automatically deployed.")
+        
+        # 12. For Netlify, show final status
+        if platform == "Netlify":
+            print("\n" + "="*75)
+            print("NETLIFY DEPLOYMENT STATUS")
+            print("="*75)
+            try:
+                import subprocess
+                        status_result = subprocess.run(["netlify", "status"], capture_output=True, text=False, shell=False, timeout=30)
+                        if status_result.returncode == 0:
+                            out = status_result.stdout
+                            if isinstance(out, (bytes, bytearray)):
+                                out = out.decode('utf-8', errors='replace')
+                            else:
+                                out = str(out)
+                            print(out)
+                else:
+                    print("Could not retrieve status from Netlify CLI")
+            except Exception as e:
+                print(f"Status check skipped: {e}")
     else:
-        print(f"\nDeployment failed.")
+        print(f"\n✗ Deployment failed.")
         print("Troubleshooting: Check CLI login, internet, project setup.")
         print("Try manual deploy via platform dashboard.")
 
