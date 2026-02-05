@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-deploy-agent = "deploy_agent:main"
+deploy-agent = "auto_deploy_agent_cli.deploy_agent:main"
 
 [project.urls]
 Homepage = "https://github.com/auto-deploy-agent/cli"

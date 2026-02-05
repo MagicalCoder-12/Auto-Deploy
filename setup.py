@@ -11,7 +11,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'deploy-agent=deploy_agent:main',
+            'deploy-agent=auto_deploy_agent_cli.deploy_agent:main',
         ],
     },
     python_requires='>=3.6',

@@ -6,12 +6,14 @@ This is the legacy monolithic version. For the modular version, please use:
 python main.py
 """
 
-# For backward compatibility, import and run the main function
-from main import main
-
 # Expose main function for CLI entry point
 def main():
     """Main entry point for the CLI tool."""
+    # Import main function locally to avoid circular imports
+    import sys
+    import os
+    # Add parent directory to path to import main
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from main import main as _main
     _main()
 
