@@ -472,7 +472,29 @@ def init_git_repo(auto_init=False):
             return True
         else:
             print("No remote repository configured.")
-            return True
+            if auto_init:
+                # In auto-init mode, we should still prompt for remote URL setup
+                repo_url = input("Enter your remote Git repository URL (e.g., https://github.com/user/repo.git) or leave blank to skip: ").strip()
+                if repo_url:
+                    try:
+                        subprocess.run(f"git remote add origin {repo_url}", check=True, shell=True, text=True, encoding="utf-8", errors="replace", timeout=30)
+                        subprocess.run("git branch -M main", check=True, shell=True, text=True, encoding="utf-8", errors="replace", timeout=30)
+                        print(f"✓ Remote repository configured: {repo_url}")
+                        return True
+                    except subprocess.TimeoutExpired:
+                        print("Git remote setup timed out")
+                        return False
+                    except subprocess.CalledProcessError as e:
+                        print(f"Git remote setup failed: {e}")
+                        return False
+                    except Exception as e:
+                        print(f"Git remote setup error: {e}")
+                        return False
+                else:
+                    print("Skipped remote repository setup.")
+                    return True
+            else:
+                return True
     
     if not auto_init:
         permission = input("Do you want me to initialize a git repository for this project? (y/n): ")
