@@ -4,7 +4,7 @@ A command-line tool that automatically detects, builds, and deploys web projects
 
 ## Preview
 
-[![Preview](preview.png)](https://your-deployed-site.com)
+[![Preview](preview.png)](https://auto-deploy-website-roeqwymq8-magicalcoder-12s-projects.vercel.app)
 
 Click to watch a video demo of how to use this project
 
