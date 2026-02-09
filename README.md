@@ -4,7 +4,7 @@ A command-line tool that automatically detects, builds, and deploys web projects
 
 ## Preview
 
-[![Click → opens your site → video plays](preview.png)](https://your-deployed-site.com)
+[![Preview](preview.png)](https://your-deployed-site.com)
 
 Like a trapdoor into your project 🕳️🎮
 
