@@ -365,8 +365,8 @@ def deploy_to_cloudflare_pages():
     try:
         build_folder = next((f for f in ["dist", "build", "out"] if os.path.exists(f)), ".")
         print("Deploying to Cloudflare...")
-            cmd = f"wrangler pages deploy {build_folder} --project-name {os.getcwd().split(os.sep)[-1]}"
-            result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", shell=True, timeout=300)
+        cmd = f"wrangler pages deploy {build_folder} --project-name {os.getcwd().split(os.sep)[-1]}"
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", shell=True, timeout=300)
         if result.returncode == 0:
             print("Deployed!")
             for line in result.stdout.split('\n'):
