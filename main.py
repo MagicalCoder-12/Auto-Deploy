@@ -179,14 +179,14 @@ def main():
             print("="*75)
             try:
                 import subprocess
-                        status_result = subprocess.run(["netlify", "status"], capture_output=True, text=False, shell=False, timeout=30)
-                        if status_result.returncode == 0:
-                            out = status_result.stdout
-                            if isinstance(out, (bytes, bytearray)):
-                                out = out.decode('utf-8', errors='replace')
-                            else:
-                                out = str(out)
-                            print(out)
+                status_result = subprocess.run(["netlify", "status"], capture_output=True, text=False, shell=False, timeout=30)
+                if status_result.returncode == 0:
+                    out = status_result.stdout
+                    if isinstance(out, (bytes, bytearray)):
+                        out = out.decode('utf-8', errors='replace')
+                    else:
+                        out = str(out)
+                    print(out)
                 else:
                     print("Could not retrieve status from Netlify CLI")
             except Exception as e:
