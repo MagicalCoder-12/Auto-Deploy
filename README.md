@@ -2,6 +2,12 @@
 
 A command-line tool that automatically detects, builds, and deploys web projects to the most suitable hosting platform using AI-powered recommendations.
 
+## Preview
+
+[![Click → opens your site → video plays](preview.png)](https://your-deployed-site.com)
+
+Like a trapdoor into your project 🕳️🎮
+
 ## Features
 
 - 🔍 **Automatic Project Detection**: Identifies project types (Next.js, Vite, React, Flask, static sites)
@@ -21,9 +27,7 @@ A command-line tool that automatically detects, builds, and deploys web projects
 
 2. **Python**: Python 3.6 or higher
 
-3. **Platform-specific requirements**:
-   - For Node.js projects: Node.js and npm
-   - For Python projects: Python and pip
+3. **Git**: Required for deployment to platforms that use Git-based deployment (GitHub Pages, Render)
 
 ## Supported Project Types
 
@@ -45,35 +49,35 @@ A command-line tool that automatically detects, builds, and deploys web projects
 
 1. Clone or download this repository
 2. Navigate to the project directory
-3. Install dependencies:
+3. Install dependencies using the modern PEP 517 build system:
    ```bash
-   pip install -r requirements.txt
+   pip install .
    ```
-4. Install Ollama from https://ollama.com/ if not already installed
-5. Pull the Llama 3.1 model:
+   This will install the package and make the `deploy-agent` command available globally.
+
+4. Verify installation:
+   ```bash
+   deploy-agent
+   ```
+
+5. Ensure Ollama is installed from https://ollama.com/ and pull the Llama 3.1 model:
    ```bash
    ollama pull llama3.1:8b
    ```
 
-### Alternative Installation Using pyproject.toml (Recommended)
-
-The Auto Deploy Agent now uses the modern PEP 517 build system to avoid deprecation warnings. You can install the package using:
-
-```bash
-pip install .
-```
-
-This will install the package and make the `deploy-agent` command available globally. This method uses the new `pyproject.toml` configuration which resolves the deprecation warning about the legacy setup.py mechanism.
-
-### Legacy Installation Using setup.py
-
-You can still use the legacy setup.py file for installation:
+### Alternative: Run without installation
+If you prefer not to install the package globally, you can run directly from the project directory without installation:
 
 ```bash
-pip install .
+# Run with Python
+python main.py
 ```
 
-However, we recommend using the new PEP 517 build system with pyproject.toml to avoid future compatibility issues.
+or use the provided scripts from the project root:
+- **Windows**: `deploy.bat`
+- **macOS/Linux**: `./deploy.sh`
+
+**Note:** When running without installation, the Auto Deploy directory must be in your project's root for proper functionality.
 
 ## Platform CLI Installation Commands
 
@@ -115,16 +119,16 @@ From the project directory, run:
 - **Windows**: `deploy.bat`
 - **macOS/Linux**: `./deploy.sh`
 
-### Method 2: Direct Python execution
+### Method 2: Using the installed CLI command
+If you installed the package with `pip install .`, you can run:
+```bash
+deploy-agent
+```
+
+### Method 3: Direct Python execution
 From the project directory, run:
 ```bash
 python main.py
-```
-
-### Method 3: Legacy entry point
-From the project directory, run:
-```bash
-python deploy_agent.py
 ```
 
 The tool will:
@@ -139,69 +143,59 @@ The tool will:
 The code has been restructured into a modular architecture for better maintainability:
 
 ```
-auto_deploy/
-├── core/                 # Core functionality modules
-│   ├── detector.py       # Project detection logic
-│   ├── recommender.py    # Platform recommendation logic
-│   ├── cli_manager.py    # CLI tool management
-│   ├── git_handler.py    # Git operations
-│   ├── builder.py        # Build processes
-│   ├── deployer.py       # Deployment functions
-│   └── file_manager.py   # File creation and management
-├── utils/                # Utility functions
-│   └── helpers.py        
-├── config.py             # Configuration constants
-├── main.py               # Main entry point
-└── deploy_agent.py       # Legacy entry point (deprecated)
+Auto Deploy/
+├── core/                      # Core functionality modules
+│   ├── detector.py            # Project detection logic
+│   ├── recommender.py         # Platform recommendation logic
+│   ├── model_selector.py      # Ollama model selection
+│   ├── cli_manager.py         # CLI tool management
+│   ├── git_handler.py         # Git operations
+│   ├── builder.py             # Build processes
+│   ├── deployer.py            # Deployment functions
+│   ├── file_manager.py        # File creation and management
+│   └── __init__.py
+├── utils/                     # Utility functions
+│   └── helpers.py
+├── auto_deploy_agent_cli/     # CLI package
+│   ├── deploy_agent.py        # CLI entry point
+│   └── __init__.py
+├── config.py                  # Configuration constants
+├── main.py                    # Main entry point
+├── deploy.bat                 # Windows deployment script
+├── deploy.sh                  # macOS/Linux deployment script
+└── pyproject.toml             # Project metadata and dependencies
 ```
 
 ## How It Works
 
-1. **Detection**: The tool scans your project directory to identify the project type based on files like `package.json`, `requirements.txt`, or `index.html`.
+1. **Detection**: Scans your project to identify the type based on files like `package.json`, `requirements.txt`, or `index.html`
+2. **AI Recommendation**: Uses Ollama with Llama 3.1 to recommend the best hosting platform with setup steps
+3. **CLI Setup**: Guides you through installing required platform CLIs
+4. **Build**: Automatically builds your project if needed (Next.js, Vite, React, etc.)
+5. **Deploy**: Either automates deployment (Vercel, Netlify, Cloudflare Pages) or provides step-by-step instructions (GitHub Pages, Render)
 
-2. **AI Recommendation**: Uses Ollama with the Llama 3.1 model to analyze your project and recommend the most suitable hosting platform with personalized setup steps.
+## Flask-Specific Configuration
 
-3. **Setup**: It guides you through installing any required CLIs.
-
-4. **Build**: If your project requires building (Next.js, Vite, React), it will automatically run the build process.
-
-5. **Deploy**: 
-   - For platforms with CLI support (Vercel, Netlify, Cloudflare Pages), it performs automated deployment
-   - For platforms requiring manual steps (GitHub Pages, Render), it provides detailed deployment instructions
-
-## Project-Specific Configurations
-
-### Flask Projects
-
-For Flask projects, the tool automatically creates a `vercel.json` configuration file if deploying to Vercel, ensuring proper deployment.
+For Flask projects deployed to Vercel, the tool automatically creates a `vercel.json` configuration file. Ensure:
+- Your Flask app exports an `application` variable
+- `gunicorn` is in your `requirements.txt`
+- Your project structure matches Vercel's expectations
 
 ## Deployment Types
 
-### Automated Deployment (Vercel, Netlify, Cloudflare Pages)
-These platforms have CLI tools that allow for fully automated deployment. The agent will:
-1. Check authentication
-2. Initialize the project
-3. Deploy to the platform
-4. Provide the live URL
+**Automated Deployment** (Vercel, Netlify, Cloudflare Pages):
+- The agent automatically handles authentication, initialization, and deployment
+- Provides the live URL upon successful deployment
 
-### Manual Deployment (GitHub Pages, Render)
-These platforms require manual steps to complete deployment:
-- GitHub Pages: Requires pushing code to GitHub and enabling Pages in settings
-- Render: Requires creating an account and connecting your Git repository
-
-The agent provides detailed step-by-step instructions for completing these manual deployments.
+**Manual Deployment** (GitHub Pages, Render):
+- GitHub Pages: Push code to GitHub and enable Pages in repository settings
+- Render: Create account, connect your Git repository, and configure build settings
+- The agent provides detailed step-by-step instructions for each platform
 
 ## Troubleshooting
 
-If you encounter issues:
-
-1. Ensure Ollama is installed and the llama3.1:8b model is pulled
-2. Ensure all required CLIs are installed and accessible
-3. Check your internet connection
-4. Verify you're logged in to your chosen platform
-5. Make sure your project builds locally before deploying
-
-For Flask projects deployed to Vercel, ensure:
-- Your Flask app exposes an `application` variable
-- `gunicorn` is included in your `requirements.txt`
-- Your project structure matches Vercel's expectations
+**Common issues:**
+- **Ollama not running**: Ensure Ollama is installed and the `llama3.1:8b` model is pulled
+- **CLI tools not found**: Install required CLIs (Vercel, Netlify, Wrangler) using the commands in the Platform CLI Installation section
+- **Deployment failure**: Check internet connection, verify you're logged in to your platform, and ensure your project builds locally
+- **Flask to Vercel**: Make sure `gunicorn` is in `requirements.txt` and your app exports an `application` variable
