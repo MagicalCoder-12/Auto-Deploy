@@ -6,7 +6,7 @@ A command-line tool that automatically detects, builds, and deploys web projects
 
 [![Preview](preview.png)](https://your-deployed-site.com)
 
-Like a trapdoor into your project 🕳️🎮
+Click to watch a video demo of how to use this project
 
 ## Features
 
