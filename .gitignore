@@ -1,23 +1,4 @@
-.env
-.clinerules/byterover-rules.md
-.kilocode/rules/byterover-rules.md
-.roo/rules/byterover-rules.md
-.windsurf/rules/byterover-rules.md
-.cursor/rules/byterover-rules.mdc
-.kiro/steering/byterover-rules.md
-.qoder/rules/byterover-rules.md
-.augment/rules/byterover-rules.md
-# Local Netlify folder
-.netlify
-__pycache__
-# IDE-specific directories
-.qoder/
-# Python egg info
-*.egg-info/
-# Distribution files
-dist/
-build/
-*.egg
-auto_deploy_agent_cli.egg-info/
-UML diagrams
-examples
+```
+__pycache__/
+*.pyc
+```

@@ -1,29 +1,35 @@
 #!/usr/bin/env python3
-"""Main entry point for Auto Deploy Agent CLI"""
+"""Main entry point for Auto Deploy Agent CLI - Production Ready Version
+
+This is the production-ready version with human-in-the-loop verification
+for git commits and robust error handling for real-time applications.
+"""
 
 import time
 import sys
+from pathlib import Path
 
 from config import PROJECT_DIR
 try:
     from dotenv import load_dotenv
-    from pathlib import Path
-    # Load .env from the project root (same directory as this file)
+    # Load .env from the project root
     base_dir = Path(__file__).resolve().parent
     load_dotenv(dotenv_path=base_dir / ".env")
 except ImportError:
-    print("python-dotenv not installed; .env will not be loaded automatically. Run: pip install python-dotenv")
+    print("python-dotenv not installed; .env will not be loaded automatically.")
+
 from core.detector import detect_project_type
 from core.recommender import recommend_platform
 from core.cli_manager import install_cli
 from core.file_manager import create_required_files
-from core.git_handler import init_git_repo, is_git_repo, get_git_remote_url, git_add_and_commit, git_push_to_remote, has_uncommitted_changes, generate_commit_message
+from core.git_handler import GitHandler, is_git_repo, get_git_remote_url, has_uncommitted_changes
 from core.builder import build_project
 from core.deployer import deploy_to_platform, deploy_to_platform_flask, validate_deployment, check_paid_platform_confirmation
 from core.model_selector import get_model_name
 
-def ensure_git_ready_for_deployment(platform):
-    """Ensure Git repository is ready for deployment (fully automated, no prompts)."""
+
+def ensure_git_ready_for_deployment(platform: str, git_handler: GitHandler) -> bool:
+    """Ensure Git repository is ready for deployment with human verification."""
     # Platforms that require Git
     git_required_platforms = ["GitHub Pages", "Render"]
     
@@ -33,36 +39,73 @@ def ensure_git_ready_for_deployment(platform):
     print(f"\nEnsuring Git repository is ready for {platform} deployment...")
     
     # Check if this is a Git repository, if not initialize it
-    if not is_git_repo():
+    if not git_handler.is_git_repo():
         print(f"{platform} requires a Git repository. Initializing one...")
-        if not init_git_repo(auto_init=True):
+        if not git_handler.init_repo(auto_init=True):
             print("Failed to initialize Git repository.")
             return False
     
     # Check if there's a remote URL configured
-    remote_url = get_git_remote_url()
+    remote_url = git_handler.get_git_remote_url()
     if not remote_url:
         print(f"⚠️  No remote repository configured for {platform}.")
         print("Set up a remote with: git remote add origin <your-repo-url>")
-        return False  # Cannot auto-configure remote without user input
+        return False
     
     print(f"✓ Connected to remote: {remote_url}")
     
-    # Auto-detect changes, commit, and push (no prompts)
+    # Human-in-the-loop: Show changes and get approval before committing
     if has_uncommitted_changes():
-        print("Detected changes. Auto-committing...")
-        commit_msg = generate_commit_message()
-        print(f"  Commit message: {commit_msg}")
-        if not git_add_and_commit(commit_msg):
-            print("Failed to commit changes.")
+        print("\n📋 Changes detected that need to be committed:")
+        print("\nBefore deploying to {platform}, these changes must be committed and pushed.")
+        
+        # Use human-in-the-loop commit
+        if not git_handler.human_in_the_loop_commit(require_approval=True):
+            print("⚠️  Commit was skipped or failed. Cannot proceed with deployment.")
             return False
         
-        print("Pushing to remote...")
-        if not git_push_to_remote():
-            print("Failed to push to remote repository.")
+        # Push to remote after successful commit
+        print("\nPushing to remote repository...")
+        if not git_handler.git_push():
+            print("⚠️  Failed to push to remote repository.")
             return False
     else:
         print("✓ No changes to commit.")
+    
+    return True
+
+
+def auto_commit_changes(git_handler: GitHandler, description: str = "project changes") -> bool:
+    """Auto-commit changes without human verification (for non-critical deployments)."""
+    if not git_handler.is_git_repo() or not has_uncommitted_changes():
+        return True
+    
+    print(f"\n📝 Auto-committing {description}...")
+    
+    # Stage all changes
+    success, staged_files = git_handler.git_add_all()
+    if not success:
+        print("⚠️  Failed to stage changes")
+        return False
+    
+    if not staged_files:
+        return True
+    
+    # Generate commit message
+    commit_message = git_handler.generate_commit_message(use_ai=True)
+    print(f"  Commit message: {commit_message}")
+    
+    # Commit without requiring approval (automated mode)
+    if not git_handler.git_commit(commit_message):
+        print("⚠️  Failed to commit changes")
+        return False
+    
+    # Push if remote is configured
+    if git_handler.get_git_remote_url():
+        print("  Pushing to remote...")
+        if not git_handler.git_push():
+            print("⚠️  Failed to push changes")
+            return False
     
     return True
 
@@ -75,8 +118,11 @@ def main():
         import io
         sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
     
-    print("Welcome to the Auto Deploy Agent CLI!")
+    print("Welcome to the Auto Deploy Agent CLI - Production Ready!")
     print(f"Scanning project in: {PROJECT_DIR}")
+    
+    # Initialize Git handler for production-ready operations
+    git_handler = GitHandler(PROJECT_DIR)
     
     # Select Ollama model
     selected_model = get_model_name()
@@ -130,25 +176,19 @@ def main():
 
     # 6. Initialize git repo (auto-init if not already initialized)
     print("\nInitializing Git repository...")
-    if not init_git_repo(auto_init=True):
+    if not git_handler.init_repo(auto_init=True):
         print("⚠️  Git initialization skipped or failed.")
     
     # 7. For platforms that require Git, ensure repository is ready for deployment
-    if not ensure_git_ready_for_deployment(platform):
+    #    This includes HUMAN-IN-THE-LOOP verification for commits
+    if not ensure_git_ready_for_deployment(platform, git_handler):
         # The error message is handled within ensure_git_ready_for_deployment
         return
     
     # 8. Auto-commit any remaining project changes before build/deploy (universal for all platforms)
-    if is_git_repo() and has_uncommitted_changes():
-        print("\nAuto-committing project changes...")
-        commit_msg = generate_commit_message()
-        print(f"  Commit: {commit_msg}")
-        git_add_and_commit(commit_msg)
-        
-        # Push if remote is configured
-        if get_git_remote_url():
-            print("Pushing to remote...")
-            git_push_to_remote()
+    #    Using automated mode here since these are pre-deployment changes
+    if not auto_commit_changes(git_handler, "pre-deployment changes"):
+        print("⚠️  Could not commit pre-deployment changes, but continuing...")
 
     # 9. Build project if necessary
     print("\nBuilding project...")
