@@ -1,0 +1,108 @@
+@startuml Auto_Deploy_Component_Diagram
+!define RECTANGLE package
+
+title Auto Deploy Agent - Component Diagram
+
+' Core Components
+component "Main Entry Point" as Main {
+    component "main.py"
+}
+
+component "Detection & Analysis" as Detection {
+    component "Detector" as Detector
+    component "Model Selector" as ModuleSelector
+}
+
+component "Recommendation Engine" as Recommendation {
+    component "Recommender" as Recommender
+    note right : Uses Ollama/Llama3.1\nfor recommendations
+}
+
+component "Project Setup" as Setup {
+    component "File Manager" as FileManager
+    component "CLI Manager" as CLIManager
+    component "Git Handler" as GitHandler
+}
+
+component "Build & Deployment" as BuildDeploy {
+    component "Builder" as Builder
+    component "Deployer" as Deployer
+}
+
+component "Configuration" as Config {
+    component "config.py" as ConfigFile
+}
+
+component "Utilities" as Utils {
+    component "helpers.py" as Helpers
+}
+
+' External Services
+component "External Services" as External {
+    component "Ollama (LLM)" as Ollama
+    component "Git Operations" as Git
+    component "CLI Tools" as CLITools {
+        component "Vercel CLI"
+        component "Netlify CLI"
+        component "GitHub CLI"
+    }
+    component "Deployment Platforms" as Platforms {
+        component "Vercel"
+        component "Netlify"
+        component "GitHub Pages"
+        component "Cloudflare Pages"
+        component "Render"
+    }
+}
+
+' Relationships
+Main --> Detector
+Main --> Recommender
+Main --> CLIManager
+Main --> FileManager
+Main --> Builder
+Main --> GitHandler
+Main --> Deployer
+Main --> ModuleSelector
+
+Detector --> Ollama
+Detector --> ConfigFile
+
+Recommender --> Ollama
+Recommender --> ConfigFile
+
+CLIManager --> ConfigFile
+CLIManager --> CLITools
+
+FileManager --> ConfigFile
+
+GitHandler --> Git
+GitHandler --> ConfigFile
+
+Builder --> ConfigFile
+Builder --> CLITools
+
+Deployer --> CLITools
+Deployer --> Platforms
+Deployer --> Git
+Deployer --> ConfigFile
+
+ModuleSelector --> ConfigFile
+ModuleSelector --> Ollama
+
+ConfigFile --> Helpers
+Deployer --> Helpers
+GitHandler --> Helpers
+
+note bottom of Main
+    Orchestrates the entire deployment workflow:
+    1. Detect project type
+    2. Recommend platform
+    3. Install required CLI tools
+    4. Create required files
+    5. Build project
+    6. Prepare Git repo
+    7. Deploy to selected platform
+end note
+
+@enduml

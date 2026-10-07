@@ -1,0 +1,92 @@
+@startuml Auto_Deploy_Data_Flow_Diagram
+!define DARKBLUE
+!define LIGHTBLUE
+
+title Auto Deploy Agent - Data Flow Diagram
+
+' Actors
+actor User
+entity "File System" as FileSystem
+entity "Project Directory" as ProjectDir
+entity "Environment Variables" as EnvVars
+
+database "Ollama LLM" as Ollama_DB
+database "Git Repository" as GitRepo
+database "Deployment Platforms" as DeployPlatforms
+
+' Processes
+component "detect_project_type()" as P1
+component "recommend_platform()" as P2
+component "install_cli()" as P3
+component "create_required_files()" as P4
+component "build_project()" as P5
+component "ensure_git_ready_for_deployment()" as P6
+component "deploy_to_platform()" as P7
+
+' User Actions
+User --> P1: "Trigger deployment"
+User --> P2
+
+' Data flows from system
+ProjectDir --> P1: "List files & folders"
+P1 --> Ollama_DB: "Send project structure"
+Ollama_DB --> P1: "Detected project type\n(nextjs, vite, react,\npython-flask, etc.)"
+P1 --> P2: "project_type"
+
+' Recommendation flow
+P2 --> Ollama_DB: "Query best platform"
+Ollama_DB --> P2: "Platform recommendation\n+ setup steps"
+P2 --> User: "Display recommendation"
+User --> P3: "Confirm platform"
+
+' CLI Installation flow
+P3 --> EnvVars: "Check CLI_MAP config"
+P3 --> FileSystem: "Verify CLI installed"
+FileSystem --> P3: "CLI status"
+P3 --> User: "Request install permission"
+User --> P3: "yes/no"
+P3 --> FileSystem: "Execute install commands"
+
+' File Management flow
+ProjectDir --> P4: "Check for package.json,\nrequirements.txt"
+P4 --> FileSystem: "Create missing files"
+
+' Build flow
+P4 --> P5: "project_type, platform"
+P5 --> FileSystem: "Execute build commands\n(npm install, build, etc.)"
+FileSystem --> P5: "Build artifacts"
+
+' Git preparation flow
+ProjectDir --> P6: "Check for .git"
+P6 --> GitRepo: "Initialize repo if needed"
+P6 --> GitRepo: "Check remote URL"
+GitRepo --> P6: "Remote URL"
+ProjectDir --> P6: "Get uncommitted changes"
+P6 --> GitRepo: "Auto-commit if needed"
+
+' Deployment flow
+P6 --> P7: "Confirm git ready"
+P7 --> DeployPlatforms: "Send artifacts + config"
+DeployPlatforms --> P7: "Deployment status"
+P7 --> User: "Deployment result"
+P7 --> DeployPlatforms: "Validate deployment\n(health check)"
+
+' Data storage
+EnvVars -.-> P1: "MODEL selection"
+EnvVars -.-> P2: "OLLAMA settings"
+EnvVars -.-> P3: "CLI configurations"
+
+note bottom
+    Data flows through the system from left to right:
+    1. User initiates deployment
+    2. System analyzes project structure
+    3. Gets AI-powered recommendations
+    4. Installs required tools
+    5. Creates deployment configuration files
+    6. Builds the project
+    7. Prepares Git repository
+    8. Deploys to selected platform
+    9. Validates successful deployment
+end note
+
+@enduml

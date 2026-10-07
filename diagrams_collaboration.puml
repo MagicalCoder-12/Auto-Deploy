@@ -1,0 +1,137 @@
+@startuml Auto Deploy Agent - Collaboration Diagram
+!define SPACING 200
+
+title Auto Deploy Agent - Collaboration Diagram
+
+' Objects
+object Main {
+    entry_point
+    orchestrator
+}
+
+object Detector {
+    detect_project_type()
+}
+
+object Recommender {
+    recommend_platform()
+}
+
+object CLIManager {
+    check_cli_installed()
+    install_cli()
+}
+
+object FileManager {
+    create_required_files()
+}
+
+object Builder {
+    check_node_installed()
+    install_dependencies()
+    build_project()
+}
+
+object GitHandler {
+    init_git_repo()
+    is_git_repo()
+    git_add_and_commit()
+    git_push_to_remote()
+    has_uncommitted_changes()
+    generate_commit_message()
+}
+
+object Deployer {
+    deploy_to_platform()
+    check_paid_platform_confirmation()
+    validate_deployment()
+}
+
+object ModelSelector {
+    get_model_name()
+}
+
+object Config {
+    PROJECT_DIR
+    OLLAMA_MODEL
+    RECOMMENDATIONS
+    CLI_MAP
+    PAID_PLATFORMS
+}
+
+object OllamaService {
+    chat()
+    generate()
+}
+
+object GitService {
+    git_init
+    git_add
+    git_commit
+    git_push
+}
+
+object CLITools {
+    vercel_cli
+    netlify_cli
+    github_cli
+}
+
+' Sequence of Collaborations
+Main "1" --> "2" Detector: "calls detect_project_type()"
+Detector --> Config: "reads PROJECT_DIR,\nOLLAMA_MODEL"
+Detector --> OllamaService: "3: sends project files\nfor analysis"
+OllamaService --> Detector: "4: returns project type"
+
+Main "5" --> "6" ModelSelector: "calls get_model_name()"
+ModelSelector --> Config: "reads OLLAMA_MODEL"
+ModelSelector --> Detector: "7: uses detected type"
+
+Main "8" --> "9" Recommender: "calls recommend_platform()"
+Recommender --> Config: "reads RECOMMENDATIONS"
+Recommender --> OllamaService: "10: requests platform suggestion"
+OllamaService --> Recommender: "11: returns platform + steps"
+
+Main "12" --> "13" CLIManager: "calls install_cli()"
+CLIManager --> Config: "reads CLI_MAP"
+CLIManager --> CLITools: "14: checks and installs"
+CLITools --> CLIManager: "15: confirms installation"
+
+Main "16" --> "17" FileManager: "calls create_required_files()"
+FileManager --> Config: "reads PROJECT_DIR"
+FileManager --> Main: "18: creates config files"
+
+Main "19" --> "20" Builder: "calls build_project()"
+Builder --> Config: "reads PROJECT_DIR"
+Builder --> CLITools: "21: executes build commands"
+CLITools --> Builder: "22: returns build results"
+
+Main "23" --> "24" GitHandler: "calls ensure_git_ready_for_deployment()"
+GitHandler --> GitService: "25: initializes or checks repo"
+GitService --> GitHandler: "26: git status info"
+GitHandler --> Config: "reads PROJECT_DIR"
+GitHandler --> OllamaService: "27: generates commit messages"
+
+Main "28" --> "29" Deployer: "calls deploy_to_platform()"
+Deployer --> Config: "reads PAID_PLATFORMS,\nPLATFORM configs"
+Deployer --> CLITools: "30: executes deploy commands"
+CLITools --> Deployer: "31: deployment status"
+Deployer --> Main: "32: validation results"
+
+note right of Main
+    Orchestration Flow:
+    Main coordinates all components
+    in a specific sequence to ensure
+    successful deployment
+end note
+
+note bottom
+    Collaboration shows how components interact:
+    • Dark bold numbers show sequence of calls
+    • Objects represent modules/services
+    • Arrows show method calls and data returns
+    • Config provides shared constants to all components
+    • External services (Ollama, Git, CLI) are used by multiple components
+end note
+
+@enduml

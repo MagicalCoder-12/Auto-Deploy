@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Build process module for Auto Deploy Agent"""
 
 import subprocess
